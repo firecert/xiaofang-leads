@@ -1,0 +1,13 @@
+{
+  "name": "xiaofang-leads",
+  "version": "1.0.0",
+  "description": "消防培训获客线索管理系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "express": "^4.18.2"
+  }
+}

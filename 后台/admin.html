@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>线索管理后台 - 消防培训</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+body{background:#f0f2f5;color:#333}
+.header{background:linear-gradient(135deg,#1a3a6b,#2563eb);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:20px;font-weight:600}
+.header .stats{font-size:13px;opacity:.9}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.toolbar{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.toolbar select,.toolbar input,.toolbar button{padding:8px 14px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none}
+.toolbar select:focus,.toolbar input:focus{border-color:#2563eb}
+.toolbar input{flex:1;min-width:150px}
+.toolbar button{background:#2563eb;color:#fff;border:none;cursor:pointer;font-weight:500;transition:opacity .2s}
+.toolbar button:hover{opacity:.85}
+.toolbar .export-btn{background:#10b981}
+.toolbar .count{font-size:13px;color:#888;margin-left:auto}
+.table-wrap{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+table{width:100%;border-collapse:collapse}
+th{background:#f8fafc;padding:12px 14px;text-align:left;font-size:13px;font-weight:600;color:#555;border-bottom:1px solid #eee;white-space:nowrap}
+td{padding:12px 14px;font-size:14px;border-bottom:1px solid #f5f5f5}
+tr:hover{background:#fafbff}
+.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.status-new{background:#dbeafe;color:#1d4ed8}
+.status-contacted{background:#fef3c7;color:#d97706}
+.status-converted{background:#d1fae5;color:#059669}
+.status-lost{background:#fee2e2;color:#dc2626}
+.action-btn{padding:4px 10px;border:none;border-radius:4px;font-size:12px;cursor:pointer;transition:opacity .2s;margin-right:4px;margin-bottom:2px}
+.action-btn:hover{opacity:.8}
+.btn-contact{background:#fef3c7;color:#d97706}
+.btn-convert{background:#d1fae5;color:#059669}
+.btn-lost{background:#fee2e2;color:#dc2626}
+.btn-delete{background:#fce4ec;color:#c62828}
+.empty{text-align:center;padding:60px 20px;color:#aaa}
+.empty .icon{font-size:48px;margin-bottom:12px}
+.modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
+.modal.show{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto}
+.modal-box h3{margin-bottom:16px;color:#1a3a6b}
+.modal-box .field{margin-bottom:12px}
+.modal-box .field label{font-size:13px;color:#888;display:block;margin-bottom:2px}
+.modal-box .field .val{font-size:15px;color:#333}
+.modal-close{background:#eee;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;margin-top:12px;font-size:14px}
+.toast{position:fixed;top:20px;right:20px;background:rgba(0,0,0,.8);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;z-index:200;display:none}
+.toast.show{display:block;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:640px){
+  .header{padding:12px 14px}
+  .header h1{font-size:17px}
+  .container{padding:10px}
+  th,td{padding:8px 10px;font-size:13px}
+  .toolbar{gap:6px}
+  .toolbar input{min-width:100px}
+  table{font-size:13px}
+  .hide-mobile{display:none}
+  .action-btn{font-size:11px;padding:3px 7px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 线索管理后台</h1>
+  <div class="stats">共 <span id="totalCount">0</span> 条线索</div>
+</div>
+
+<div class="container">
+  <div class="toolbar">
+    <select id="statusFilter" onchange="loadLeads()">
+      <option value="all">全部状态</option>
+      <option value="new">新线索</option>
+      <option value="contacted">已联系</option>
+      <option value="converted">已报名</option>
+      <option value="lost">无意向</option>
+    </select>
+    <input type="text" id="searchInput" placeholder="搜索姓名/手机号..." oninput="loadLeads()">
+    <button onclick="loadLeads()">🔍 搜索</button>
+    <button class="export-btn" onclick="exportCSV()">📥 导出Excel</button>
+    <span class="count" id="filterCount">显示 0 条</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>姓名</th>
+          <th>手机号</th>
+          <th class="hide-mobile">来源</th>
+          <th class="hide-mobile">留言</th>
+          <th class="hide-mobile">时间</th>
+          <th>状态</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="leadTable">
+        <tr class="empty"><td colspan="7"><div class="icon">📭</div><div>暂无线索数据</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal" id="detailModal">
+  <div class="modal-box">
+    <h3>📄 线索详情</h3>
+    <div class="field"><label>姓名</label><div class="val" id="detailName"></div></div>
+    <div class="field"><label>手机号</label><div class="val" id="detailPhone"></div></div>
+    <div class="field"><label>来源</label><div class="val" id="detailSource"></div></div>
+    <div class="field"><label>留言</label><div class="val" id="detailNote"></div></div>
+    <div class="field"><label>状态</label><div class="val" id="detailStatus"></div></div>
+    <div class="field"><label>提交时间</label><div class="val" id="detailTime"></div></div>
+    <button class="modal-close" onclick="closeModal()">关闭</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api/leads';
+
+async function loadLeads() {
+  const status = document.getElementById('statusFilter').value;
+  const keyword = document.getElementById('searchInput').value.trim();
+  let url = API;
+  const params = [];
+  if (status !== 'all') params.push('status=' + status);
+  if (keyword) params.push('keyword=' + encodeURIComponent(keyword));
+  if (params.length) url += '?' + params.join('&');
+
+  try {
+    const res = await fetch(url);
+    const result = await res.json();
+    if (!result.ok) return;
+    renderTable(result.data);
+    document.getElementById('totalCount').textContent = result.total;
+    document.getElementById('filterCount').textContent = '显示 ' + result.data.length + ' 条';
+  } catch {}
+}
+
+function renderTable(leads) {
+  const tbody = document.getElementById('leadTable');
+  if (!leads.length) {
+    tbody.innerHTML = '<tr class="empty"><td colspan="7"><div class="icon">📭</div><div>暂无线索数据</div></td></tr>';
+    return;
+  }
+  const statusMap = { new:'新线索', contacted:'已联系', converted:'已报名', lost:'无意向' };
+  tbody.innerHTML = leads.map(l => `
+    <tr>
+      <td><strong>${l.name}</strong></td>
+      <td><a href="tel:${l.phone}" style="color:#2563eb;text-decoration:none">${l.phone}</a></td>
+      <td class="hide-mobile">${l.source || '-'}</td>
+      <td class="hide-mobile" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.note || '-'}</td>
+      <td class="hide-mobile" style="font-size:12px;color:#888">${l.createdAt || '-'}</td>
+      <td><span class="status-badge status-${l.status}">${statusMap[l.status] || l.status}</span></td>
+      <td nowrap>
+        <button class="action-btn btn-contact" onclick="updateStatus('${l.id}','contacted')">📞 已联系</button>
+        <button class="action-btn btn-convert" onclick="updateStatus('${l.id}','converted')">✅ 已报名</button>
+        <button class="action-btn btn-lost" onclick="updateStatus('${l.id}','lost')">❌ 无意向</button>
+        <button class="action-btn btn-delete" onclick="deleteLead('${l.id}')">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function updateStatus(id, status) {
+  try {
+    const res = await fetch(API + '/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      showToast('✅ 状态已更新');
+      loadLeads();
+    }
+  } catch {}
+}
+
+async function deleteLead(id) {
+  if (!confirm('确认删除该线索？')) return;
+  try {
+    const res = await fetch(API + '/' + id, { method: 'DELETE' });
+    const result = await res.json();
+    if (result.ok) {
+      showToast('🗑 已删除');
+      loadLeads();
+    }
+  } catch {}
+}
+
+function exportCSV() {
+  const rows = document.querySelectorAll('#leadTable tr:not(.empty)');
+  if (!rows.length || rows[0].querySelector('td')?.colSpan) {
+    showToast('❌ 没有数据可导出');
+    return;
+  }
+  const statusMap = { new:'新线索', contacted:'已联系', converted:'已报名', lost:'无意向' };
+  let csv = '\uFEFF姓名,手机号,来源,留言,时间,状态\n';
+  rows.forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if (!tds.length || tds.length < 6) return;
+    const name = tds[0].textContent.trim();
+    const phone = tds[1].textContent.trim();
+    const source = tds[2]?.textContent.trim() || '';
+    const note = (tds[3]?.textContent.trim() || '').replace(/,/g, '，');
+    const time = tds[4]?.textContent.trim() || '';
+    const status = tds[5]?.querySelector('.status-badge')?.textContent.trim() || '';
+    csv += `${name},${phone},${source},${note},${time},${status}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  const now = new Date();
+  link.download = `消防培训线索_${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}.csv`;
+  link.click();
+  showToast('✅ 导出成功');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+loadLeads();
+setInterval(loadLeads, 30000);
+</script>
+</body>
+</html>
