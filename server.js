@@ -102,11 +102,8 @@ app.delete('/api/leads/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-app.use(express.static(path.join(__dirname, '落地页')));
-app.use('/admin', express.static(path.join(__dirname, '后台')));
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '落地页', 'index.html'));
-});
+app.use(express.static(__dirname));
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 app.listen(PORT, () => {
   console.log('========================================');

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>线索管理后台 - 消防培训</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+body{background:#f0f2f5;color:#333}
+.header{background:linear-gradient(135deg,#1a3a6b,#2563eb);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.header h1{font-size:20px;font-weight:600}
+.header .stats{display:flex;gap:16px;font-size:13px}
+.header .stats span{background:rgba(255,255,255,.15);padding:4px 12px;border-radius:20px}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.toolbar{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.toolbar select,.toolbar input,.toolbar button{padding:8px 14px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none}
+.toolbar select:focus,.toolbar input:focus{border-color:#2563eb}
+.toolbar input{flex:1;min-width:150px}
+.toolbar button{background:#2563eb;color:#fff;border:none;cursor:pointer;font-weight:500;transition:opacity .2s}
+.toolbar button:hover{opacity:.85}
+.toolbar .export-btn{background:#10b981}
+.toolbar .count{font-size:13px;color:#888;margin-left:auto;white-space:nowrap}
+.table-wrap{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+table{width:100%;border-collapse:collapse}
+th{background:#f8fafc;padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:#555;border-bottom:1px solid #eee;white-space:nowrap}
+td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f0f0f0}
+tr.row-new-urgent{background:#fff0f0}
+tr.row-new-warning{background:#fffde7}
+tr:hover{background:#f0f4ff!important}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.status-new{background:#dbeafe;color:#1d4ed8}
+.status-contacted{background:#fef3c7;color:#d97706}
+.status-converted{background:#d1fae5;color:#059669}
+.status-lost{background:#fee2e2;color:#dc2626}
+.call-btn{background:#e8f5e9;color:#2e7d32;border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center}
+.call-btn:hover{background:#2e7d32;color:#fff;transform:scale(1.1)}
+.action-btn{padding:3px 8px;border:none;border-radius:4px;font-size:11px;cursor:pointer;transition:opacity .2s;margin-right:3px;margin-bottom:2px}
+.action-btn:hover{opacity:.8}
+.btn-contact{background:#fef3c7;color:#d97706}
+.btn-convert{background:#d1fae5;color:#059669}
+.btn-lost{background:#fee2e2;color:#dc2626}
+.btn-delete{background:#fce4ec;color:#c62828}
+.empty{text-align:center;padding:60px 20px;color:#aaa}
+.empty .icon{font-size:48px;margin-bottom:12px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:14px;padding:24px;width:90%;max-width:480px;max-height:85vh;overflow-y:auto}
+.modal-box h3{margin-bottom:16px;color:#1a3a6b;font-size:17px}
+.result-btns{display:flex;gap:8px;margin-bottom:14px}
+.result-btns button{flex:1;padding:10px;border:2px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;transition:all .2s}
+.result-btns button.active-ok{border-color:#059669;background:#d1fae5;color:#059669}
+.result-btns button.active-miss{border-color:#d97706;background:#fef3c7;color:#d97706}
+.result-btns button.active-callback{border-color:#2563eb;background:#dbeafe;color:#2563eb}
+.form-group{margin-bottom:12px}
+.form-group label{font-size:12px;color:#888;display:block;margin-bottom:3px;font-weight:500}
+.form-group input,.form-group textarea{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none}
+.form-group input:focus,.form-group textarea:focus{border-color:#2563eb}
+.form-group textarea{resize:vertical;min-height:60px}
+.modal-footer{display:flex;gap:8px;margin-top:16px}
+.modal-footer button{flex:1;padding:10px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.modal-footer .save-btn{background:#2563eb;color:#fff}
+.modal-footer .save-btn:hover{opacity:.85}
+.modal-footer .cancel-btn{background:#eee;color:#555}
+.modal-call-hist{margin-top:12px;border-top:1px solid #eee;padding-top:12px}
+.modal-call-hist .item{display:flex;gap:8px;padding:6px 0;font-size:12px;color:#666;border-bottom:1px dashed #f0f0f0}
+.modal-call-hist .item .r{font-weight:600;min-width:60px}
+.modal-call-hist .item .t{color:#aaa;min-width:100px}
+.toast{position:fixed;top:20px;right:20px;background:rgba(0,0,0,.8);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;z-index:200;display:none;max-width:320px}
+.toast.show{display:block;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:640px){
+.header{padding:12px 14px;flex-direction:column;align-items:flex-start}
+.header .stats{gap:8px;font-size:12px}
+.container{padding:10px}
+th,td{padding:7px 8px;font-size:12px}
+.hide-m{display:none}
+.call-btn{width:28px;height:28px;font-size:14px}
+}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:20}
+.tabs button{padding:12px 20px;border:none;background:transparent;font-size:14px;font-weight:500;cursor:pointer;color:#64748b;position:relative;transition:all .2s}
+.tabs button:hover{color:#2563eb}
+.tabs button.active{color:#2563eb;font-weight:600}
+.tabs button.active::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:2px;background:#2563eb;border-radius:1px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.ws{padding:16px;max-width:1400px;margin:0 auto;display:grid;grid-template-columns:280px 1fr 300px;gap:16px;align-items:start}
+.ws-stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.ws-stats .card{background:#fff;border-radius:10px;padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.ws-stats .card .num{font-size:22px;font-weight:700;color:#2563eb}
+.ws-stats .card .lbl{font-size:12px;color:#94a3b8;margin-top:2px}
+.ws-queue{background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.05);max-height:calc(100vh - 200px);overflow-y:auto}
+.ws-queue h3{font-size:14px;color:#0f172a;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}
+.ws-qitem{padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:background .15s;border:2px solid transparent}
+.ws-qitem:hover{background:#f8fafc}
+.ws-qitem.active{border-color:#2563eb;background:#eff6ff}
+.ws-qitem .qn{font-weight:600;font-size:13px}
+.ws-qitem .qp{font-size:12px;color:#64748b}
+.ws-qitem .qtime{font-size:11px;color:#94a3b8}
+.ws-qitem.q-urgent{border-left:3px solid #ef4444}
+.ws-qitem.q-warning{border-left:3px solid #f59e0b}
+.ws-dialer{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.ws-dialer .empty-state{text-align:center;padding:40px 20px;color:#94a3b8}
+.ws-dialer .empty-state .icon{font-size:48px;margin-bottom:12px}
+.ws-dialer .dh{font-size:20px;font-weight:700;color:#0f172a;margin-bottom:4px}
+.ws-dialer .dp{font-size:14px;color:#64748b;margin-bottom:2px}
+.ws-dialer .dnote{font-size:13px;color:#94a3b8;margin-bottom:16px;padding:8px;background:#f8fafc;border-radius:6px}
+.ws-call-btns{display:flex;gap:10px;margin-bottom:16px}
+.ws-call-btns .dial-btn{flex:1;background:#2563eb;color:#fff;border:none;border-radius:10px;padding:14px;font-size:17px;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.ws-call-btns .dial-btn:hover{opacity:.9}
+.ws-call-btns .copy-btn{background:#f1f5f9;color:#475569;border:none;border-radius:10px;padding:14px 16px;font-size:14px;cursor:pointer;white-space:nowrap}
+.ws-call-btns .copy-btn:hover{background:#e2e8f0}
+.ws-results{display:flex;gap:8px;margin-bottom:12px}
+.ws-results button{flex:1;padding:10px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;transition:all .15s}
+.ws-results button.r-ok{border-color:#059669;background:#d1fae5;color:#059669}
+.ws-results button.r-miss{border-color:#d97706;background:#fef3c7;color:#d97706}
+.ws-results button.r-callback{border-color:#2563eb;background:#dbeafe;color:#2563eb}
+.ws-dialer textarea,.ws-dialer input{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:10px;resize:vertical}
+.ws-dialer textarea:focus,.ws-dialer input:focus{border-color:#2563eb}
+.ws-dialer textarea{min-height:50px}
+.ws-save-btn{width:100%;padding:12px;background:linear-gradient(135deg,#059669,#10b981);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.ws-save-btn:hover{opacity:.9}
+.ws-save-btn:disabled{opacity:.5;cursor:not-allowed}
+.ws-history{margin-top:14px;border-top:1px solid #f1f5f9;padding-top:12px}
+.ws-history .item{display:flex;gap:10px;padding:6px 0;font-size:12px;color:#64748b;border-bottom:1px dashed #f8fafc}
+.ws-scripts{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);max-height:calc(100vh - 200px);overflow-y:auto}
+.ws-scripts h3{font-size:14px;color:#0f172a;margin-bottom:10px}
+.ws-scripts .group{margin-bottom:14px}
+.ws-scripts .group-title{font-size:13px;font-weight:600;color:#475569;padding:6px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.ws-scripts .group .phrases{display:none;flex-direction:column;gap:4px;margin-top:4px}
+.ws-scripts .group.open .phrases{display:flex}
+.ws-scripts .phrase{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px;color:#475569;cursor:pointer;transition:all .15s;line-height:1.5}
+.ws-scripts .phrase:hover{background:#eff6ff;border-color:#2563eb;color:#2563eb}
+.ws-scripts .phrase:active{background:#dbeafe}
+.ws-qskip{display:block;width:100%;text-align:center;padding:8px;margin-top:6px;background:none;border:1px dashed #e2e8f0;border-radius:6px;color:#94a3b8;font-size:12px;cursor:pointer}
+.ws-qskip:hover{color:#2563eb;border-color:#2563eb}
+@media(max-width:900px){
+.ws{grid-template-columns:1fr}
+.ws-stats{grid-template-columns:repeat(2,1fr)}
+.ws-scripts{max-height:none}
+.ws-queue{max-height:300px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📋 线索管理后台</h1>
+  </div>
+  <div class="stats">
+    <span>📋 共 <b id="totalCount">0</b> 条</span>
+    <span>🆕 新线索 <b id="newCount" style="color:#ffd54f">0</b></span>
+    <span>🔴 超24h <b id="urgentCount" style="color:#ef5350">0</b></span>
+    <span>📞 待回拨 <b id="callbackCount" style="color:#64b5f6">0</b></span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="switchTab('list')">📋 线索管理</button>
+  <button onclick="switchTab('dial')">📞 拨号工作台</button>
+</div>
+
+<div class="tab-content active" id="tab-list"><div class="container">
+  <div class="toolbar">
+    <select id="statusFilter" onchange="loadLeads()">
+      <option value="all">全部状态</option>
+      <option value="new">🆕 新线索</option>
+      <option value="contacted">📞 已联系</option>
+      <option value="converted">✅ 已报名</option>
+      <option value="lost">❌ 无意向</option>
+    </select>
+    <input type="text" id="searchInput" placeholder="搜索姓名/手机号..." oninput="debounceSearch()">
+    <button onclick="loadLeads()">🔍 搜索</button>
+    <button class="export-btn" onclick="exportCSV()">📥 导出</button>
+    <span class="count" id="filterCount">显示 0 条</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>姓名</th>
+          <th>电话</th>
+          <th class="hide-m">留言</th>
+          <th class="hide-m">时间</th>
+          <th>通话</th>
+          <th>状态</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="leadTable">
+        <tr class="empty"><td colspan="7"><div class="icon">📭</div><div>暂无线索数据</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div></div>
+
+<!-- Tab 2: 拨号工作台 -->
+<div class="tab-content" id="tab-dial">
+  <div class="ws" id="wsApp">
+    <div class="ws-stats">
+      <div class="card"><div class="num" id="wsQueueCount">0</div><div class="lbl">📋 待拨队列</div></div>
+      <div class="card"><div class="num" id="wsDoneCount">0</div><div class="lbl">✅ 今日已拨</div></div>
+      <div class="card"><div class="num" id="wsRateCount">0%</div><div class="lbl">📈 接通率</div></div>
+      <div class="card"><div class="num" id="wsUrgentCount">0</div><div class="lbl">🔴 超24h</div></div>
+    </div>
+    <div class="ws-queue" id="wsQueue">
+      <h3>📋 待拨队列 <span id="wsQTotal" style="font-weight:400;color:#94a3b8;font-size:12px">(0)</span></h3>
+      <div id="wsQList"><div style="text-align:center;padding:30px 0;color:#94a3b8">暂无待拨线索</div></div>
+      <button class="ws-qskip" onclick="wsSkip()">⏭️ 跳到下一通</button>
+    </div>
+    <div class="ws-dialer" id="wsDialer">
+      <div class="empty-state" id="wsEmpty">
+        <div class="icon">📞</div>
+        <div>从左侧队列选择一个线索开始拨打</div>
+      </div>
+      <div id="wsActive" style="display:none">
+        <div class="dh" id="wsName">—</div>
+        <div class="dp" id="wsPhone">—</div>
+        <div class="dnote" id="wsNote">—</div>
+        <div class="ws-call-btns">
+          <a class="dial-btn" id="wsDialBtn" href="tel:">📞 拨打</a>
+          <button class="copy-btn" onclick="wsCopyPhone()">📋 复制</button>
+        </div>
+        <div class="ws-results">
+          <button id="wsRok" onclick="wsSetResult('ok')">✅ 已接通</button>
+          <button id="wsRmiss" onclick="wsSetResult('miss')">❌ 无人接</button>
+          <button id="wsRcb" onclick="wsSetResult('callback')">🔄 需回拨</button>
+        </div>
+        <textarea id="wsNoteInput" placeholder="通话备注（客户意向、需求等）" style="min-height:40px"></textarea>
+        <input type="datetime-local" id="wsFollowup">
+        <button class="ws-save-btn" id="wsSaveBtn" onclick="wsSave()">💾 保存并拨打下一通</button>
+        <div class="ws-history" id="wsHistory"></div>
+      </div>
+    </div>
+    <div class="ws-scripts" id="wsScripts">
+      <h3>💬 话术助手</h3>
+      <div id="wsScriptsContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="callModal">
+  <div class="modal-box">
+    <h3>📞 通话记录</h3>
+    <div style="text-align:center;margin-bottom:14px">
+      <a id="callLink" href="tel:13800000000" style="display:block;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:14px;font-size:18px;font-weight:700">📞 拨打 13800000000</a>
+      <button id="copyPhoneBtn" onclick="copyPhone()" style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;margin-top:6px">📋 复制号码</button>
+    </div>
+    <div class="result-btns">
+      <button id="resOk" onclick="setResult('ok')">✅ 已接通</button>
+      <button id="resMiss" onclick="setResult('miss')">❌ 无人接听</button>
+      <button id="resCallback" onclick="setResult('callback')">🔄 需回拨</button>
+    </div>
+    <div class="form-group">
+      <label>通话备注</label>
+      <textarea id="callNote" placeholder="记录通话内容、客户意向..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>下次跟进时间（选填）</label>
+      <input type="datetime-local" id="callFollowup">
+    </div>
+    <div class="modal-call-hist" id="callHistory"></div>
+    <div class="modal-footer">
+      <button class="cancel-btn" onclick="closeCallModal()">取消</button>
+      <button class="save-btn" onclick="saveCallLog()">💾 保存通话记录</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://bmgfwpxqscdwrmqznhas.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtZ2Z3cHhxc2Nkd3JtcXpuaGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjAzODcsImV4cCI6MjA5NTM5NjM4N30.U6bUA8d-FYW9svXwZHAImsJVcfGM1l2GQESUTYqi4Bc';
+const SB = SUPABASE_URL + '/rest/v1';
+const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+
+let selectedLead = null;
+let callResult = 'ok';
+let searchTimer = null;
+
+function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(loadLeads, 500); }
+
+function fmtTime(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  const pad = n => n.toString().padStart(2,'0');
+  return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor(diff / 60000);
+  if (h > 48) return Math.floor(h/24)+'天前';
+  if (h > 0) return h+'小时前';
+  return m+'分钟前';
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+async function loadLeads() {
+  const status = document.getElementById('statusFilter').value;
+  const keyword = document.getElementById('searchInput').value.trim();
+  let url = SB + '/leads?select=*&order=created_at.desc';
+  if (status !== 'all') url += '&status=eq.' + status;
+  if (keyword) url += '&or=(name.ilike.*' + encodeURIComponent(keyword) + '*,phone.ilike.*' + encodeURIComponent(keyword) + '*)';
+  try {
+    const res = await fetch(url, { headers: HEADERS });
+    const data = await res.json();
+    if (!Array.isArray(data)) return;
+    renderTable(data);
+    updateStats(data);
+  } catch {}
+}
+
+function updateStats(leads) {
+  const now = Date.now();
+  let n = 0, u = 0, c = 0;
+  leads.forEach(l => {
+    if (l.status === 'new') n++;
+    if (l.status === 'new' && l.created_at && now - new Date(l.created_at).getTime() > 86400000) u++;
+    if (l.status !== 'converted' && l.status !== 'lost' && l.next_followup_at && new Date(l.next_followup_at).getTime() < now + 3600000) c++;
+  });
+  document.getElementById('totalCount').textContent = leads.length;
+  document.getElementById('newCount').textContent = n;
+  document.getElementById('urgentCount').textContent = u;
+  document.getElementById('callbackCount').textContent = c;
+}
+
+function renderTable(leads) {
+  const tbody = document.getElementById('leadTable');
+  if (!leads.length) {
+    tbody.innerHTML = '<tr class="empty"><td colspan="7"><div class="icon">📭</div><div>暂无线索数据</div></td></tr>';
+    return;
+  }
+  const statusMap = { new:'新线索', contacted:'已联系', converted:'已报名', lost:'无意向' };
+  const now = Date.now();
+  tbody.innerHTML = leads.map(l => {
+    let cls = '';
+    if (l.status === 'new' && l.created_at) {
+      const age = now - new Date(l.created_at).getTime();
+      if (age > 86400000) cls = 'row-new-urgent';
+      else if (age > 43200000) cls = 'row-new-warning';
+    }
+    const lastContact = l.last_contacted_at ? timeAgo(l.last_contacted_at) : '-';
+    return `<tr class="${cls}">
+      <td><strong>${esc(l.name)}</strong></td>
+      <td><a href="tel:${esc(l.phone)}" style="color:#2563eb;text-decoration:none">${esc(l.phone)}</a></td>
+      <td class="hide-m" style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.note||'-')}</td>
+      <td class="hide-m" style="font-size:11px;color:#888">${fmtTime(l.created_at)}</td>
+      <td><button class="call-btn" onclick="openCallModal('${l.id}','${esc(l.phone)}','${esc(l.name)}')" title="拨打并记录">📞</button>${l.call_count ? '<span style="font-size:11px;color:#888;margin-left:4px">×'+l.call_count+'</span>' : ''}</td>
+      <td><span class="status-badge status-${l.status}">${statusMap[l.status] || l.status}</span><br><span style="font-size:10px;color:#aaa">${lastContact}</span></td>
+      <td nowrap>
+        <button class="action-btn btn-contact" onclick="updateStatus('${l.id}','contacted')">📞 已联系</button>
+        <button class="action-btn btn-convert" onclick="updateStatus('${l.id}','converted')">✅ 报名</button>
+        <button class="action-btn btn-lost" onclick="updateStatus('${l.id}','lost')">❌ 无意向</button>
+        <button class="action-btn btn-delete" onclick="deleteLead('${l.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function setResult(r) {
+  callResult = r;
+  ['resOk','resMiss','resCallback'].forEach(id => document.getElementById(id).className = '');
+  if (r === 'ok') document.getElementById('resOk').className = 'active-ok';
+  else if (r === 'miss') document.getElementById('resMiss').className = 'active-miss';
+  else if (r === 'callback') document.getElementById('resCallback').className = 'active-callback';
+}
+
+async function openCallModal(id, phone, name) {
+  selectedLead = { id, phone, name };
+  const callLink = document.getElementById('callLink');
+  callLink.href = 'tel:' + phone;
+  callLink.innerHTML = '📞 拨打 ' + phone;
+  document.getElementById('copyPhoneBtn').setAttribute('data-phone', phone);
+  setResult('ok');
+  document.getElementById('callNote').value = '';
+  document.getElementById('callFollowup').value = '';
+  document.getElementById('callHistory').innerHTML = '';
+  document.getElementById('callModal').classList.add('show');
+  try {
+    const res = await fetch(SB + '/call_logs?lead_id=eq.' + id + '&select=*&order=created_at.desc&limit=10', { headers: HEADERS });
+    const logs = await res.json();
+    if (Array.isArray(logs) && logs.length) {
+      const resultMap = { ok:'✅ 已接通', miss:'❌ 未接', callback:'🔄 需回拨', pending:'⏳ 待定' };
+      document.getElementById('callHistory').innerHTML = '<div style="font-size:12px;color:#888;margin-bottom:6px">📋 历史通话记录</div>' +
+        logs.map(log => `<div class="item"><span class="r">${resultMap[log.result]||log.result}</span><span>${esc(log.note||'')}</span><span class="t">${fmtTime(log.created_at)}</span></div>`).join('');
+    } else {
+      document.getElementById('callHistory').innerHTML = '<div style="font-size:12px;color:#aaa;text-align:center;padding:8px 0">暂无通话记录</div>';
+    }
+  } catch {}
+}
+
+function copyPhone() {
+  const phone = document.getElementById('copyPhoneBtn').getAttribute('data-phone');
+  if (!phone) return;
+  navigator.clipboard.writeText(phone).then(() => showToast('✅ 已复制号码: ' + phone)).catch(() => showToast('❌ 复制失败'));
+}
+
+function closeCallModal() {
+  document.getElementById('callModal').classList.remove('show');
+  selectedLead = null;
+}
+
+async function saveCallLog() {
+  if (!selectedLead) return;
+  const result = callResult;
+  const note = document.getElementById('callNote').value.trim();
+  const followup = document.getElementById('callFollowup').value;
+  try {
+    await fetch(SB + '/call_logs', {
+      method: 'POST', headers: HEADERS,
+      body: JSON.stringify({ lead_id: selectedLead.id, result, note, next_followup: followup ? new Date(followup).toISOString() : null })
+    });
+    const updates = { last_contacted_at: new Date().toISOString() };
+    if (followup) updates.next_followup_at = new Date(followup).toISOString();
+    await fetch(SB + '/leads?id=eq.' + selectedLead.id, {
+      method: 'PATCH', headers: HEADERS,
+      body: JSON.stringify(updates)
+    });
+    showToast('✅ 通话记录已保存');
+    closeCallModal();
+    loadLeads();
+  } catch { showToast('❌ 保存失败，请重试'); }
+}
+
+async function updateStatus(id, status) {
+  try {
+    const res = await fetch(SB + '/leads?id=eq.' + id, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status }) });
+    if (res.ok) { showToast('✅ 状态已更新'); loadLeads(); }
+  } catch {}
+}
+
+async function deleteLead(id) {
+  if (!confirm('确认删除该线索？')) return;
+  try {
+    await fetch(SB + '/call_logs?lead_id=eq.' + id, { method: 'DELETE', headers: HEADERS });
+    const res = await fetch(SB + '/leads?id=eq.' + id, { method: 'DELETE', headers: HEADERS });
+    if (res.ok) { showToast('🗑 已删除'); loadLeads(); }
+  } catch {}
+}
+
+function exportCSV() {
+  const rows = document.querySelectorAll('#leadTable tr:not(.empty)');
+  if (!rows.length || rows[0].querySelector('td')?.colSpan) { showToast('❌ 没有数据可导出'); return; }
+  const statusMap = { new:'新线索', contacted:'已联系', converted:'已报名', lost:'无意向' };
+  let csv = '\uFEFF姓名,手机号,留言,时间,通话次数,状态\n';
+  rows.forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 7) return;
+    const name = tds[0].textContent.trim();
+    const phone = tds[1].textContent.trim();
+    const note = (tds[2]?.textContent.trim() || '').replace(/,/g,'，');
+    const time = tds[3]?.textContent.trim() || '';
+    const callCount = tds[4]?.textContent.trim().replace(/[^\d]/g,'') || '0';
+    const status = tds[5]?.querySelector('.status-badge')?.textContent.trim() || '';
+    csv += `${name},${phone},${note},${time},${callCount},${status}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  const now = new Date();
+  link.download = `消防培训线索_${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}.csv`;
+  link.click();
+  showToast('✅ 导出成功');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* === 话术助手数据 === */
+const SCRIPTS = {
+  '开场白': [
+    '您好，请问是{name}先生/女士吗？我是消防培训中心的课程顾问',
+    '您好，打扰了，看到您之前了解过消防设施操作员证书',
+  ],
+  '确认意向': [
+    '您之前是通过什么渠道了解消防证的呢？',
+    '您是给自己咨询还是帮朋友/家人问的？',
+    '您目前对消防证了解程度怎么样？我给您简单介绍一下',
+  ],
+  '课程介绍': [
+    '我们的课程2980全包：精讲课程 + 题库 + 考前冲刺 + 代报名',
+    '现在报名限时赠送价值980元的押题密卷，覆盖85%以上考点',
+    '线上学习为主，手机电脑都能学，不耽误工作',
+    '通过率96.8%，考不过免费重学不限次数',
+  ],
+  '价格/优惠': [
+    '2980是全部费用，没有任何隐形收费，比大机构省一半',
+    '支持分期付款，首付50%就可以开始学习',
+    '本月的优惠活动最后3天了，现在报名最划算',
+    '您今天报名的话，我额外帮您申请个赠品',
+  ],
+  '异议处理': [
+    '【担心考不过】我们96.8%通过率，而且考不过免费重学，您没有任何风险',
+    '【价格问题】2980全包是最低价了，您去外面问一圈就知道了',
+    '【没时间学】线上课程，每天花1小时刷题，通勤路上也能学',
+    '【需要跟家人商量】没问题，您先了解清楚，家人问起来您也能解释',
+    '【再考虑考虑】理解，但这个优惠仅限前50名，建议先占个名额',
+  ],
+  '促成': [
+    '那我现在帮您办报名手续？只需要提供姓名和身份证号就行',
+    '今天报名的话，明天就能开通学习账号开始学习',
+    '您看是微信还是支付宝支付？我发付款码给您',
+    '先付500定金就能锁定优惠名额，后面慢慢学',
+  ],
+  '跟进': [
+    '您好，之前跟您联系过消防证的事情，您考虑得怎么样了？',
+    '上次跟您说的优惠活动快结束了，您看要不要抓住机会？',
+    '您之前提到的XX问题，我帮您查过了，解答一下...',
+  ]
+};
+
+/* === 拨号工作台状态 === */
+let wsQueue = [];
+let wsQueueIdx = -1;
+let wsCallResult = 'ok';
+let wsSaving = false;
+
+function switchTab(tab) {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  if (tab === 'list') {
+    document.querySelector('.tabs button:first-child').classList.add('active');
+    document.getElementById('tab-list').classList.add('active');
+  } else {
+    document.querySelector('.tabs button:last-child').classList.add('active');
+    document.getElementById('tab-dial').classList.add('active');
+    loadWorkstation();
+  }
+}
+
+function buildScripts() {
+  const c = document.getElementById('wsScriptsContent');
+  const name = wsQueueIdx >= 0 ? wsQueue[wsQueueIdx]?.name || '' : '';
+  c.innerHTML = Object.entries(SCRIPTS).map(([group, phrases]) =>
+    `<div class="group open">
+      <div class="group-title" onclick="this.parentNode.classList.toggle('open')">
+        ${group} <span style="font-size:10px">▼</span>
+      </div>
+      <div class="phrases">
+        ${phrases.map(p => `<div class="phrase" onclick="wsCopyScript(this)">${p.replace('{name}', esc(name))}</div>`).join('')}
+      </div>
+    </div>`
+  ).join('');
+}
+
+function wsCopyScript(el) {
+  const text = el.textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制: ' + text.slice(0, 20) + '...')).catch(() => {});
+}
+
+async function loadWorkstation() {
+  try {
+    const res = await fetch(SB + '/leads?select=*&order=created_at.asc', { headers: HEADERS });
+    const all = await res.json();
+    if (!Array.isArray(all)) return;
+    const now = Date.now();
+    wsQueue = all.filter(l => l.status === 'new');
+    wsQueue.sort((a, b) => {
+      const aAge = a.created_at ? now - new Date(a.created_at).getTime() : 0;
+      const bAge = b.created_at ? now - new Date(b.created_at).getTime() : 0;
+      return bAge - aAge;
+    });
+    const today = new Date(); today.setHours(0,0,0,0);
+    const doneRes = await fetch(SB + '/call_logs?select=*&created_at=gte.' + today.toISOString(), { headers: HEADERS });
+    const todayLogs = await doneRes.json();
+    const doneToday = Array.isArray(todayLogs) ? todayLogs.length : 0;
+    const okToday = Array.isArray(todayLogs) ? todayLogs.filter(l => l.result === 'ok').length : 0;
+    const rate = doneToday > 0 ? Math.round(okToday / doneToday * 100) : 0;
+    const urgent = wsQueue.filter(l => l.created_at && now - new Date(l.created_at).getTime() > 86400000).length;
+    document.getElementById('wsQueueCount').textContent = wsQueue.length;
+    document.getElementById('wsDoneCount').textContent = doneToday;
+    document.getElementById('wsRateCount').textContent = rate + '%';
+    document.getElementById('wsUrgentCount').textContent = urgent;
+    renderQueue();
+    if (wsQueue.length > 0 && wsQueueIdx < 0) { wsQueueIdx = 0; selectWsLead(0); }
+    else if (wsQueue.length > 0 && wsQueueIdx >= 0) selectWsLead(wsQueueIdx);
+    else { wsQueueIdx = -1; document.getElementById('wsEmpty').style.display = 'block'; document.getElementById('wsActive').style.display = 'none'; }
+  } catch {}
+}
+
+function renderQueue() {
+  const list = document.getElementById('wsQList');
+  const now = Date.now();
+  if (!wsQueue.length) {
+    list.innerHTML = '<div style="text-align:center;padding:30px 0;color:#94a3b8">🎉 暂无待拨线索</div>';
+    document.getElementById('wsQTotal').textContent = '(0)';
+    return;
+  }
+  document.getElementById('wsQTotal').textContent = '(' + wsQueue.length + ')';
+  list.innerHTML = wsQueue.map((l, i) => {
+    let cls = 'ws-qitem' + (i === wsQueueIdx ? ' active' : '');
+    const age = l.created_at ? now - new Date(l.created_at).getTime() : 0;
+    if (age > 86400000) cls += ' q-urgent';
+    else if (age > 43200000) cls += ' q-warning';
+    const timeAgoStr = l.created_at ? timeAgo(l.created_at) : '';
+    return `<div class="${cls}" onclick="selectWsLead(${i})">
+      <div class="qn">${esc(l.name)}</div>
+      <div class="qp">${esc(l.phone)}</div>
+      <div class="qtime">${timeAgoStr}${l.call_count ? ' · 📞×'+l.call_count : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectWsLead(idx) {
+  if (idx < 0 || idx >= wsQueue.length) return;
+  wsQueueIdx = idx;
+  const l = wsQueue[idx];
+  document.getElementById('wsEmpty').style.display = 'none';
+  document.getElementById('wsActive').style.display = 'block';
+  document.getElementById('wsName').textContent = l.name;
+  document.getElementById('wsPhone').textContent = l.phone;
+  document.getElementById('wsNote').textContent = '留言: ' + (l.note || '无');
+  document.getElementById('wsDialBtn').href = 'tel:' + l.phone;
+  document.getElementById('wsDialBtn').innerHTML = '📞 拨打 ' + l.phone;
+  document.getElementById('wsNoteInput').value = '';
+  document.getElementById('wsFollowup').value = '';
+  wsSetResult('ok');
+  renderQueue();
+  buildScripts();
+  loadWsHistory(l.id);
+}
+
+function wsSetResult(r) {
+  wsCallResult = r;
+  document.getElementById('wsRok').className = r === 'ok' ? 'r-ok' : '';
+  document.getElementById('wsRmiss').className = r === 'miss' ? 'r-miss' : '';
+  document.getElementById('wsRcb').className = r === 'callback' ? 'r-callback' : '';
+}
+
+async function loadWsHistory(leadId) {
+  const el = document.getElementById('wsHistory');
+  try {
+    const res = await fetch(SB + '/call_logs?lead_id=eq.' + leadId + '&select=*&order=created_at.desc&limit=10', { headers: HEADERS });
+    const logs = await res.json();
+    if (Array.isArray(logs) && logs.length) {
+      const resultMap = { ok:'✅ 已接通', miss:'❌ 未接', callback:'🔄 需回拨', pending:'⏳ 待定' };
+      el.innerHTML = '<div style="font-size:12px;color:#888;margin-bottom:6px">📋 通话历史</div>' +
+        logs.map(log => `<div class="item"><span>${resultMap[log.result]||log.result}</span><span>${esc(log.note||'')}</span><span style="color:#94a3b8">${fmtTime(log.created_at)}</span></div>`).join('');
+    } else {
+      el.innerHTML = '<div style="font-size:12px;color:#aaa;text-align:center;padding:8px 0">暂无通话记录</div>';
+    }
+  } catch { el.innerHTML = ''; }
+}
+
+function wsCopyPhone() {
+  const l = wsQueue[wsQueueIdx];
+  if (!l) return;
+  navigator.clipboard.writeText(l.phone).then(() => showToast('✅ 已复制: ' + l.phone)).catch(() => {});
+}
+
+function wsSkip() {
+  if (wsQueueIdx < wsQueue.length - 1) { selectWsLead(wsQueueIdx + 1); }
+  else { showToast('✅ 已经到最后一个了'); }
+}
+
+async function wsSave() {
+  if (wsSaving) return;
+  const l = wsQueue[wsQueueIdx];
+  if (!l) return;
+  wsSaving = true;
+  const btn = document.getElementById('wsSaveBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 保存中...';
+  const note = document.getElementById('wsNoteInput').value.trim();
+  const followup = document.getElementById('wsFollowup').value;
+  try {
+    await fetch(SB + '/call_logs', {
+      method: 'POST', headers: HEADERS,
+      body: JSON.stringify({ lead_id: l.id, result: wsCallResult, note, next_followup: followup ? new Date(followup).toISOString() : null })
+    });
+    const updates = { last_contacted_at: new Date().toISOString(), call_count: (l.call_count || 0) + 1 };
+    if (followup) updates.next_followup_at = new Date(followup).toISOString();
+    if (wsCallResult === 'ok') updates.status = 'contacted';
+    await fetch(SB + '/leads?id=eq.' + l.id, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(updates) });
+    showToast('✅ 已保存！');
+    l.call_count = (l.call_count || 0) + 1;
+    l.last_contacted_at = new Date().toISOString();
+    if (wsCallResult === 'ok') { wsQueue.splice(wsQueueIdx, 1); }
+    if (wsQueue.length > 0) {
+      if (wsQueueIdx >= wsQueue.length) wsQueueIdx = wsQueue.length - 1;
+      selectWsLead(wsQueueIdx);
+    } else {
+      wsQueueIdx = -1;
+      document.getElementById('wsEmpty').style.display = 'block';
+      document.getElementById('wsActive').style.display = 'none';
+      renderQueue();
+    }
+    loadWorkstation();
+  } catch { showToast('❌ 保存失败'); }
+  finally { wsSaving = false; btn.disabled = false; btn.textContent = '💾 保存并拨打下一通'; }
+}
+
+loadLeads();
+setInterval(loadLeads, 30000);
+</script>
+</body>
+</html>
